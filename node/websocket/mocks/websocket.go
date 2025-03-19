@@ -8,10 +8,10 @@ import (
 	context "context"
 	reflect "reflect"
 
-	eth "github.com/INFURA/go-ethlibs/eth"
-	jsonrpc "github.com/INFURA/go-ethlibs/jsonrpc"
-	websocket "github.com/INFURA/go-ethlibs/node/websocket"
 	gomock "github.com/golang/mock/gomock"
+	eth "github.com/justinwongcn/go-ethlibs/eth"
+	jsonrpc "github.com/justinwongcn/go-ethlibs/jsonrpc"
+	websocket "github.com/justinwongcn/go-ethlibs/node/websocket"
 )
 
 // MockConnection is a mock of Connection interface.

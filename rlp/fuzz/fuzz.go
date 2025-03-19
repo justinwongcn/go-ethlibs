@@ -1,8 +1,9 @@
+//go:build gofuzz
 // +build gofuzz
 
 package rlp
 
-import "github.com/INFURA/go-ethlibs/rlp"
+import "github.com/justinwongcn/go-ethlibs/rlp"
 
 func Fuzz(data []byte) int {
 	s := string(data)

@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/INFURA/go-ethlibs/eth"
-	"github.com/INFURA/go-ethlibs/rlp"
+	"github.com/justinwongcn/go-ethlibs/eth"
+	"github.com/justinwongcn/go-ethlibs/rlp"
 )
 
 func TestTransaction_Sign(t *testing.T) {
@@ -336,7 +336,6 @@ func TestTransaction_Sign_EIP1559(t *testing.T) {
 	require.Equal(t, chainId, *_chainId)
 
 	require.True(t, tx2.IsProtected())
-
 }
 
 func TestTransaction_Sign_EIP7702(t *testing.T) {

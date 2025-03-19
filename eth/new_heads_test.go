@@ -6,11 +6,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/INFURA/go-ethlibs/eth"
+	"github.com/justinwongcn/go-ethlibs/eth"
 )
 
 func TestNewHeadsNotificationParams(t *testing.T) {
-
 	{
 		params := eth.NewHeadsNotificationParams{}
 
@@ -71,7 +70,6 @@ func TestNewHeadsNotificationParams(t *testing.T) {
 }
 
 func TestNewHeadsResult_FromBlock(t *testing.T) {
-
 	type TestCase struct {
 		Source   string
 		Block    string

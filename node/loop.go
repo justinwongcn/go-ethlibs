@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/INFURA/go-ethlibs/jsonrpc"
+	"github.com/justinwongcn/go-ethlibs/jsonrpc"
 )
 
 func newLoopingTransport(ctx context.Context, conn connCloser, readMessage readMessageFunc, writeMessage writeMessageFunc) *loopingTransport {
@@ -54,8 +54,10 @@ type connCloser interface {
 	SetWriteDeadline(t time.Time) error
 }
 
-type readMessageFunc func() ([]byte, error)
-type writeMessageFunc func(payload []byte) error
+type (
+	readMessageFunc  func() ([]byte, error)
+	writeMessageFunc func(payload []byte) error
+)
 
 type subscriptionRequest struct {
 	request  *jsonrpc.Request
@@ -197,7 +199,6 @@ func (t *loopingTransport) loop() {
 						case o.chResult <- &patchedResponse:
 							return
 						}
-
 					}(outbound, msg)
 					continue
 				}

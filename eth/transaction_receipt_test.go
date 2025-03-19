@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/INFURA/go-ethlibs/eth"
+	"github.com/justinwongcn/go-ethlibs/eth"
 )
 
 func TestTransactionReceipts(t *testing.T) {
@@ -202,7 +202,6 @@ func TestTransactionReceipts(t *testing.T) {
 		require.Equal(t, eth.TransactionTypeAccessList, receipt.Type.Int64())
 		require.Equal(t, eth.TransactionTypeAccessList, receipt.TransactionType())
 	}
-
 }
 
 func TestTransactionReceipt_4844(t *testing.T) {

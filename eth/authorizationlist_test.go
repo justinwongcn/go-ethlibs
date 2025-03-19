@@ -3,7 +3,7 @@ package eth_test
 import (
 	"testing"
 
-	"github.com/INFURA/go-ethlibs/eth"
+	"github.com/justinwongcn/go-ethlibs/eth"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,5 +50,4 @@ func TestAuthorizationList_FromRLP(t *testing.T) {
 		require.Equal(t, srcAuth.R.String(), auth.R.String(), "authorization R not equal")
 		require.Equal(t, srcAuth.S.String(), auth.S.String(), "authorization S not equal")
 	}
-
 }
