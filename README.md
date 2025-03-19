@@ -18,6 +18,10 @@ eventually graduate into stand-alone packages.
 - `rlp`: Independent implementation of RLP parsing
 
 
+## Fork
+
+This project is forked from [INFURA/go-ethlibs](https://github.com/INFURA/go-ethlibs).
+
 ## License
 
 MIT
