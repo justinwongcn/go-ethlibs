@@ -506,3 +506,68 @@ func applyContext(ctx context.Context, request *jsonrpc.Request) {
 		request.ID = *id
 	}
 }
+
+func (c *client) GetBlockTransactionCountByHash(ctx context.Context, hash string) (uint64, error) {
+	h, err := eth.NewHash(hash)
+	if err != nil {
+		return 0, errors.Wrap(err, "invalid hash")
+	}
+
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_getBlockTransactionCountByHash",
+		Params: jsonrpc.MustParams(h),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not make request")
+	}
+
+	if response.Error != nil {
+		return 0, errors.New(string(*response.Error))
+	}
+
+	if len(response.Result) == 0 || bytes.Equal(response.Result, json.RawMessage(`null`)) {
+		return 0, ErrBlockNotFound
+	}
+
+	q := eth.Quantity{}
+	err = json.Unmarshal(response.Result, &q)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not decode result")
+	}
+
+	return q.UInt64(), nil
+}
+
+func (c *client) GetBlockTransactionCountByNumber(ctx context.Context, numberOrTag eth.BlockNumberOrTag) (uint64, error) {
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_getBlockTransactionCountByNumber",
+		Params: jsonrpc.MustParams(&numberOrTag),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not make request")
+	}
+
+	if response.Error != nil {
+		return 0, errors.New(string(*response.Error))
+	}
+
+	if len(response.Result) == 0 || bytes.Equal(response.Result, json.RawMessage(`null`)) {
+		return 0, ErrBlockNotFound
+	}
+
+	q := eth.Quantity{}
+	err = json.Unmarshal(response.Result, &q)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not decode result")
+	}
+
+	return q.UInt64(), nil
+}

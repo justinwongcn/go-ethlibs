@@ -81,6 +81,12 @@ type Client interface {
 
 	// IsBidirectional returns true if the under laying transport supports bidirectional features such as subscriptions
 	IsBidirectional() bool
+
+	// GetBlockTransactionCountByHash returns the number of transactions in a block from a block matching the given block hash
+	GetBlockTransactionCountByHash(ctx context.Context, hash string) (uint64, error)
+
+	// GetBlockTransactionCountByNumber returns the number of transactions in a block matching the given block number
+	GetBlockTransactionCountByNumber(ctx context.Context, numberOrTag eth.BlockNumberOrTag) (uint64, error)
 }
 
 type Subscription interface {

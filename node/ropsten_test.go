@@ -40,6 +40,28 @@ func TestConnection_GetTransactionCount(t *testing.T) {
 	require.Empty(t, pendingNonce2, "pending nonce must not exist since it is a future block")
 }
 
+func TestConnection_GetBalance(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Test with valid address and latest block
+	blockNum1 := eth.MustBlockNumberOrTag("latest")
+	balance1, err := conn.GetBalance(ctx, "0xed28874e52A12f0D42118653B0FBCee0ACFadC00", *blockNum1)
+	require.NoError(t, err)
+	require.NotEqual(t, uint64(0), balance1, "balance must not be zero")
+
+	// Test with invalid address format
+	balance2, err := conn.GetBalance(ctx, "invalid", *blockNum1)
+	require.Error(t, err, "requesting with invalid address should return an error")
+	require.Equal(t, uint64(0), balance2, "balance should be 0 for invalid address")
+
+	// Test with future block
+	blockNum2 := eth.MustBlockNumberOrTag("0x7654321")
+	balance3, err := conn.GetBalance(ctx, "0xed28874e52A12f0D42118653B0FBCee0ACFadC00", *blockNum2)
+	require.Error(t, err)
+	require.Equal(t, uint64(0), balance3, "balance must be zero for future block")
+}
+
 func TestConnection_EstimateGas(t *testing.T) {
 	ctx := context.Background()
 	conn := getRopstenClient(t, ctx)
@@ -154,6 +176,48 @@ func TestConnection_InvalidBlockByHash(t *testing.T) {
 	b, err = conn.BlockByHash(ctx, "0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d", true)
 	require.NoError(t, err, "genesis block hash should not return an error")
 	require.NotNil(t, b, "genesis block should be retrievable by hash")
+}
+
+func TestConnection_GetBlockTransactionCountByHash(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Test with valid block hash (genesis block)
+	count1, err := conn.GetBlockTransactionCountByHash(ctx, "0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
+	require.NoError(t, err)
+	require.NotNil(t, count1, "transaction count must not be nil for valid block hash")
+
+	// Test with invalid hash format
+	count2, err := conn.GetBlockTransactionCountByHash(ctx, "invalid")
+	require.Error(t, err, "requesting with invalid hash format should return an error")
+	require.Equal(t, uint64(0), count2, "transaction count should be 0 for invalid hash format")
+
+	// Test with non-existent block hash
+	count3, err := conn.GetBlockTransactionCountByHash(ctx, "0x0badf00dbadf00dbadf00dbadf00dbadf00dbadf00dbadf00dbadf00dbadf00d")
+	require.Error(t, err)
+	require.Equal(t, uint64(0), count3, "transaction count should be 0 for non-existent block")
+	require.Equal(t, node.ErrBlockNotFound, err)
+}
+
+func TestConnection_GetBlockTransactionCountByNumber(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Test with valid block number (genesis block)
+	count1, err := conn.GetBlockTransactionCountByNumber(ctx, *eth.MustBlockNumberOrTag("0x0"))
+	require.NoError(t, err)
+	require.NotNil(t, count1, "transaction count must not be nil for valid block number")
+
+	// Test with latest block tag
+	count2, err := conn.GetBlockTransactionCountByNumber(ctx, *eth.MustBlockNumberOrTag("latest"))
+	require.NoError(t, err)
+	require.NotNil(t, count2, "transaction count must not be nil for latest block")
+
+	// Test with future block number
+	count3, err := conn.GetBlockTransactionCountByNumber(ctx, *eth.MustBlockNumberOrTag("0x7654321"))
+	require.Error(t, err)
+	require.Equal(t, uint64(0), count3, "transaction count should be 0 for future block")
+	require.Equal(t, node.ErrBlockNotFound, err)
 }
 
 func TestConnection_InvalidTransactionByHash(t *testing.T) {
