@@ -220,6 +220,108 @@ func TestConnection_GetBlockTransactionCountByNumber(t *testing.T) {
 	require.Equal(t, node.ErrBlockNotFound, err)
 }
 
+func TestConnection_GetCode(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Test with valid address and latest block
+	blockNum1 := eth.MustBlockNumberOrTag("latest")
+	code1, err := conn.GetCode(ctx, "0xed28874e52A12f0D42118653B0FBCee0ACFadC00", *blockNum1)
+	require.NoError(t, err)
+	require.NotEmpty(t, code1, "code must not be empty for valid address")
+
+	// Test with invalid address format
+	code2, err := conn.GetCode(ctx, "invalid", *blockNum1)
+	require.Error(t, err, "requesting with invalid address should return an error")
+	require.Empty(t, code2, "code should be empty for invalid address")
+
+	// Test with future block
+	blockNum2 := eth.MustBlockNumberOrTag("0x7654321")
+	code3, err := conn.GetCode(ctx, "0xed28874e52A12f0D42118653B0FBCee0ACFadC00", *blockNum2)
+	require.Error(t, err)
+	require.Empty(t, code3, "code must be empty for future block")
+}
+
+func TestConnection_Sign(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Test with valid address and message
+	signature1, err := conn.Sign(ctx, "0xed28874e52A12f0D42118653B0FBCee0ACFadC00", "0xdeadbeaf")
+	require.NoError(t, err)
+	require.NotEmpty(t, signature1, "signature must not be empty for valid parameters")
+
+	// Test with invalid address format
+	signature2, err := conn.Sign(ctx, "invalid", "0xdeadbeaf")
+	require.Error(t, err, "requesting with invalid address should return an error")
+	require.Empty(t, signature2, "signature should be empty for invalid address")
+
+	// Test with empty message
+	signature3, err := conn.Sign(ctx, "0xed28874e52A12f0D42118653B0FBCee0ACFadC00", "")
+	require.Error(t, err)
+	require.Empty(t, signature3, "signature must be empty for empty message")
+}
+
+func TestConnection_Call(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Test with valid transaction
+	tx := eth.Transaction{
+		From:     *eth.MustAddress("0xed28874e52A12f0D42118653B0FBCee0ACFadC00"),
+		To:       eth.MustAddress("0x43700db832E9Ac990D36d6279A846608643c904E"),
+		Gas:      eth.QuantityFromUInt64(30400),
+		GasPrice: eth.OptionalQuantityFromInt(10000000000000),
+		Value:    *eth.OptionalQuantityFromInt(2441406250),
+		Input:    *eth.MustInput("0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675"),
+	}
+	blockNum := eth.MustBlockNumberOrTag("latest")
+	result1, err := conn.Call(ctx, tx, *blockNum)
+	require.NoError(t, err)
+	require.NotEmpty(t, result1, "call result must not be empty for valid transaction")
+
+	// Test with invalid from address
+	tx.From = *eth.MustAddress("0x0000000000000000000000000000000000000000")
+	result2, err := conn.Call(ctx, tx, *blockNum)
+	require.Error(t, err)
+	require.Empty(t, result2, "call result should be empty for invalid from address")
+
+	// Test with future block
+	futureBlock := eth.MustBlockNumberOrTag("0x7654321")
+	result3, err := conn.Call(ctx, tx, *futureBlock)
+	require.Error(t, err)
+	require.Empty(t, result3, "call result must be empty for future block")
+}
+
+func TestConnection_SendTransaction(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Test with valid transaction
+	tx := eth.Transaction{
+		From:     *eth.MustAddress("0xed28874e52A12f0D42118653B0FBCee0ACFadC00"),
+		To:       eth.MustAddress("0x43700db832E9Ac990D36d6279A846608643c904E"),
+		Gas:      eth.QuantityFromUInt64(30400),
+		GasPrice: eth.OptionalQuantityFromInt(10000000000000),
+		Value:    *eth.OptionalQuantityFromInt(2441406250),
+		Input:    *eth.MustInput("0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675"),
+	}
+	txHash1, err := conn.SendTransaction(ctx, tx)
+	require.NoError(t, err)
+	require.NotEmpty(t, txHash1, "transaction hash must not be empty for valid transaction")
+
+	// Test with invalid from address
+	tx.From = *eth.MustAddress("0x0000000000000000000000000000000000000000")
+	txHash2, err := conn.SendTransaction(ctx, tx)
+	require.Error(t, err)
+	require.Empty(t, txHash2, "transaction hash should be empty for invalid from address")
+
+	// Test with empty transaction
+	txHash3, err := conn.SendTransaction(ctx, eth.Transaction{})
+	require.Error(t, err)
+	require.Empty(t, txHash3, "transaction hash must be empty for empty transaction")
+}
+
 func TestConnection_InvalidTransactionByHash(t *testing.T) {
 	ctx := context.Background()
 	conn := getRopstenClient(t, ctx)
@@ -241,4 +343,217 @@ func TestConnection_InvalidTransactionByHash(t *testing.T) {
 	tx, err = conn.TransactionByHash(ctx, "0x230f6e1739286f9cbf768e34a9ff3d69a2a72b92c8c3383fbdf163035c695332")
 	require.NoError(t, err, "early tx should not return an error")
 	require.NotNil(t, tx, "early tx should be retrievable by hash")
+}
+
+func TestConnection_GetTransactionByBlockHashAndIndex(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Get a block with transactions to test with
+	latestBlock, err := conn.BlockByNumberOrTag(ctx, *eth.MustBlockNumberOrTag("latest"), true)
+	require.NoError(t, err, "getting latest block should not fail")
+
+	// If the latest block has transactions, use it for testing
+	var blockHash string
+	var txIndex uint64
+	if len(latestBlock.Transactions) > 0 {
+		blockHash = latestBlock.Hash.String()
+		txIndex = 0 // Use the first transaction
+	} else {
+		// Use a known block with transactions (genesis block or another known block)
+		// For this test, we'll use a known transaction from Ropsten
+		blockHash = "0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d" // Genesis block or another known block
+		txIndex = 0                                                                      // Adjust based on the block you choose
+	}
+
+	// Test with valid block hash and index
+	tx1, err := conn.GetTransactionByBlockHashAndIndex(ctx, blockHash, txIndex)
+	if err == nil {
+		require.NotNil(t, tx1, "transaction must not be nil for valid block hash and index")
+		require.NotEmpty(t, tx1.Hash, "transaction hash must not be empty")
+	} else {
+		// If the specific block doesn't have transactions at the index, this is expected
+		require.Equal(t, node.ErrTransactionNotFound, err)
+	}
+
+	// Test with invalid hash format
+	tx2, err := conn.GetTransactionByBlockHashAndIndex(ctx, "invalid", 0)
+	require.Error(t, err, "requesting with invalid hash format should return an error")
+	require.Nil(t, tx2, "transaction should be nil for invalid hash format")
+
+	// Test with non-existent block hash
+	tx3, err := conn.GetTransactionByBlockHashAndIndex(ctx, "0x0badf00dbadf00dbadf00dbadf00dbadf00dbadf00dbadf00dbadf00dbadf00d", 0)
+	require.Error(t, err, "requesting with non-existent block hash should return an error")
+	require.Nil(t, tx3, "transaction should be nil for non-existent block hash")
+
+	// Test with valid block hash but out of range index
+	tx4, err := conn.GetTransactionByBlockHashAndIndex(ctx, blockHash, 9999)
+	require.Error(t, err, "requesting with out of range index should return an error")
+	require.Nil(t, tx4, "transaction should be nil for out of range index")
+	require.Equal(t, node.ErrTransactionNotFound, err)
+}
+
+func TestConnection_GetTransactionByBlockNumberAndIndex(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Get the latest block number
+	blockNumber, err := conn.BlockNumber(ctx)
+	require.NoError(t, err, "getting block number should not fail")
+
+	// Get a block with transactions to test with
+	latestBlock, err := conn.BlockByNumber(ctx, blockNumber, true)
+	require.NoError(t, err, "getting latest block should not fail")
+
+	// If the latest block has transactions, use it for testing
+	var testBlockNumber uint64
+	var txIndex uint64
+	if len(latestBlock.Transactions) > 0 {
+		testBlockNumber = blockNumber
+		txIndex = 0 // Use the first transaction
+	} else {
+		// Use a known block with transactions (genesis block or another known block)
+		testBlockNumber = 0 // Genesis block or another known block with transactions
+		txIndex = 0         // Adjust based on the block you choose
+	}
+
+	// Test with valid block number and index
+	blockNum1 := eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(testBlockNumber).String())
+	tx1, err := conn.GetTransactionByBlockNumberAndIndex(ctx, *blockNum1, txIndex)
+	if err == nil {
+		require.NotNil(t, tx1, "transaction must not be nil for valid block number and index")
+		require.NotEmpty(t, tx1.Hash, "transaction hash must not be empty")
+	} else {
+		// If the specific block doesn't have transactions at the index, this is expected
+		require.Equal(t, node.ErrTransactionNotFound, err)
+	}
+
+	// Test with latest block tag
+	blockNum2 := eth.MustBlockNumberOrTag("latest")
+	tx2, err := conn.GetTransactionByBlockNumberAndIndex(ctx, *blockNum2, txIndex)
+	if err == nil {
+		require.NotNil(t, tx2, "transaction must not be nil for latest block and valid index")
+		require.NotEmpty(t, tx2.Hash, "transaction hash must not be empty")
+	} else {
+		// If the latest block doesn't have transactions at the index, this is expected
+		require.Equal(t, node.ErrTransactionNotFound, err)
+	}
+
+	// Test with future block number
+	blockNum3 := eth.MustBlockNumberOrTag("0x7654321")
+	tx3, err := conn.GetTransactionByBlockNumberAndIndex(ctx, *blockNum3, 0)
+	require.Error(t, err, "requesting with future block number should return an error")
+	require.Nil(t, tx3, "transaction should be nil for future block number")
+
+	// Test with valid block number but out of range index
+	tx4, err := conn.GetTransactionByBlockNumberAndIndex(ctx, *blockNum1, 9999)
+	require.Error(t, err, "requesting with out of range index should return an error")
+	require.Nil(t, tx4, "transaction should be nil for out of range index")
+	require.Equal(t, node.ErrTransactionNotFound, err)
+}
+
+func TestConnection_GetUncleByBlockHashAndIndex(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Get a block with uncles to test with
+	latestBlock, err := conn.BlockByNumberOrTag(ctx, *eth.MustBlockNumberOrTag("latest"), true)
+	require.NoError(t, err, "getting latest block should not fail")
+
+	// If the latest block has uncles, use it for testing
+	var blockHash string
+	var uncleIndex uint64
+	if len(latestBlock.Uncles) > 0 {
+		blockHash = latestBlock.Hash.String()
+		uncleIndex = 0 // Use the first uncle
+	} else {
+		// Use a known block with uncles
+		blockHash = "0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d" // Genesis block or another known block
+		uncleIndex = 0
+	}
+
+	// Test with valid block hash and index
+	uncle1, err := conn.GetUncleByBlockHashAndIndex(ctx, blockHash, uncleIndex)
+	if err == nil {
+		require.NotNil(t, uncle1, "uncle must not be nil for valid block hash and index")
+		require.NotEmpty(t, uncle1.Hash, "uncle hash must not be empty")
+	} else {
+		// If the specific block doesn't have uncles at the index, this is expected
+		require.Equal(t, node.ErrBlockNotFound, err)
+	}
+
+	// Test with invalid hash format
+	uncle2, err := conn.GetUncleByBlockHashAndIndex(ctx, "invalid", 0)
+	require.Error(t, err, "requesting with invalid hash format should return an error")
+	require.Nil(t, uncle2, "uncle should be nil for invalid hash format")
+
+	// Test with non-existent block hash
+	uncle3, err := conn.GetUncleByBlockHashAndIndex(ctx, "0x0badf00dbadf00dbadf00dbadf00dbadf00dbadf00dbadf00dbadf00dbadf00d", 0)
+	require.Error(t, err, "requesting with non-existent block hash should return an error")
+	require.Nil(t, uncle3, "uncle should be nil for non-existent block hash")
+
+	// Test with valid block hash but out of range index
+	uncle4, err := conn.GetUncleByBlockHashAndIndex(ctx, blockHash, 9999)
+	require.Error(t, err, "requesting with out of range index should return an error")
+	require.Nil(t, uncle4, "uncle should be nil for out of range index")
+	require.Equal(t, node.ErrBlockNotFound, err)
+}
+
+func TestConnection_GetUncleByBlockNumberAndIndex(t *testing.T) {
+	ctx := context.Background()
+	conn := getRopstenClient(t, ctx)
+
+	// Get the latest block number
+	blockNumber, err := conn.BlockNumber(ctx)
+	require.NoError(t, err, "getting block number should not fail")
+
+	// Get a block with uncles to test with
+	latestBlock, err := conn.BlockByNumber(ctx, blockNumber, true)
+	require.NoError(t, err, "getting latest block should not fail")
+
+	// If the latest block has uncles, use it for testing
+	var testBlockNumber uint64
+	var uncleIndex uint64
+	if len(latestBlock.Uncles) > 0 {
+		testBlockNumber = blockNumber
+		uncleIndex = 0 // Use the first uncle
+	} else {
+		// Use a known block with uncles
+		testBlockNumber = 0 // Genesis block or another known block with uncles
+		uncleIndex = 0
+	}
+
+	// Test with valid block number and index
+	blockNum1 := eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(testBlockNumber).String())
+	uncle1, err := conn.GetUncleByBlockNumberAndIndex(ctx, *blockNum1, uncleIndex)
+	if err == nil {
+		require.NotNil(t, uncle1, "uncle must not be nil for valid block number and index")
+		require.NotEmpty(t, uncle1.Hash, "uncle hash must not be empty")
+	} else {
+		// If the specific block doesn't have uncles at the index, this is expected
+		require.Equal(t, node.ErrBlockNotFound, err)
+	}
+
+	// Test with latest block tag
+	blockNum2 := eth.MustBlockNumberOrTag("latest")
+	uncle2, err := conn.GetUncleByBlockNumberAndIndex(ctx, *blockNum2, uncleIndex)
+	if err == nil {
+		require.NotNil(t, uncle2, "uncle must not be nil for latest block and valid index")
+		require.NotEmpty(t, uncle2.Hash, "uncle hash must not be empty")
+	} else {
+		// If the latest block doesn't have uncles at the index, this is expected
+		require.Equal(t, node.ErrBlockNotFound, err)
+	}
+
+	// Test with future block number
+	blockNum3 := eth.MustBlockNumberOrTag("0x7654321")
+	uncle3, err := conn.GetUncleByBlockNumberAndIndex(ctx, *blockNum3, 0)
+	require.Error(t, err, "requesting with future block number should return an error")
+	require.Nil(t, uncle3, "uncle should be nil for future block number")
+
+	// Test with valid block number but out of range index
+	uncle4, err := conn.GetUncleByBlockNumberAndIndex(ctx, *blockNum1, 9999)
+	require.Error(t, err, "requesting with out of range index should return an error")
+	require.Nil(t, uncle4, "uncle should be nil for out of range index")
+	require.Equal(t, node.ErrBlockNotFound, err)
 }

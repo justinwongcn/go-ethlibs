@@ -571,3 +571,201 @@ func (c *client) GetBlockTransactionCountByNumber(ctx context.Context, numberOrT
 
 	return q.UInt64(), nil
 }
+
+func (c *client) GetCode(ctx context.Context, address eth.Address, numberOrTag eth.BlockNumberOrTag) (string, error) {
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_getCode",
+		Params: jsonrpc.MustParams(address, &numberOrTag),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return "", errors.Wrap(err, "could not make request")
+	}
+
+	if response.Error != nil {
+		return "", errors.New(string(*response.Error))
+	}
+
+	var code string
+	err = json.Unmarshal(response.Result, &code)
+	if err != nil {
+		return "", errors.Wrap(err, "could not decode result")
+	}
+
+	return code, nil
+}
+
+func (c *client) Sign(ctx context.Context, address eth.Address, message string) (string, error) {
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_sign",
+		Params: jsonrpc.MustParams(address, message),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return "", errors.Wrap(err, "could not make request")
+	}
+
+	if response.Error != nil {
+		return "", errors.New(string(*response.Error))
+	}
+
+	var signature string
+	err = json.Unmarshal(response.Result, &signature)
+	if err != nil {
+		return "", errors.Wrap(err, "could not decode result")
+	}
+
+	return signature, nil
+}
+
+func (c *client) SendTransaction(ctx context.Context, msg eth.Transaction) (string, error) {
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_sendTransaction",
+		Params: jsonrpc.MustParams(msg),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return "", errors.Wrap(err, "could not make request")
+	}
+
+	if response.Error != nil {
+		return "", errors.New(string(*response.Error))
+	}
+
+	txHash := eth.Hash("")
+	err = json.Unmarshal(response.Result, &txHash)
+	if err != nil {
+		return "", errors.Wrap(err, "could not decode result")
+	}
+
+	return txHash.String(), nil
+}
+
+func (c *client) Call(ctx context.Context, msg eth.Transaction, numberOrTag eth.BlockNumberOrTag) (string, error) {
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_call",
+		Params: jsonrpc.MustParams(msg, &numberOrTag),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return "", errors.Wrap(err, "could not make request")
+	}
+
+	if response.Error != nil {
+		return "", errors.New(string(*response.Error))
+	}
+
+	var result string
+	err = json.Unmarshal(response.Result, &result)
+	if err != nil {
+		return "", errors.Wrap(err, "could not decode result")
+	}
+
+	return result, nil
+}
+
+func (c *client) GetTransactionByBlockHashAndIndex(ctx context.Context, hash string, index uint64) (*eth.Transaction, error) {
+	h, err := eth.NewHash(hash)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid hash")
+	}
+
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_getTransactionByBlockHashAndIndex",
+		Params: jsonrpc.MustParams(h, eth.QuantityFromUInt64(index)),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not make request")
+	}
+
+	if response.Error != nil {
+		return nil, errors.New(string(*response.Error))
+	}
+
+	if len(response.Result) == 0 || bytes.Equal(response.Result, json.RawMessage(`null`)) {
+		return nil, ErrTransactionNotFound
+	}
+
+	tx := eth.Transaction{}
+	err = tx.UnmarshalJSON(response.Result)
+	return &tx, err
+}
+
+func (c *client) GetTransactionByBlockNumberAndIndex(ctx context.Context, numberOrTag eth.BlockNumberOrTag, index uint64) (*eth.Transaction, error) {
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_getTransactionByBlockNumberAndIndex",
+		Params: jsonrpc.MustParams(&numberOrTag, eth.QuantityFromUInt64(index)),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not make request")
+	}
+
+	if response.Error != nil {
+		return nil, errors.New(string(*response.Error))
+	}
+
+	if len(response.Result) == 0 || bytes.Equal(response.Result, json.RawMessage(`null`)) {
+		return nil, ErrTransactionNotFound
+	}
+
+	tx := eth.Transaction{}
+	err = tx.UnmarshalJSON(response.Result)
+	return &tx, err
+}
+
+func (c *client) GetUncleByBlockHashAndIndex(ctx context.Context, hash string, index uint64) (*eth.Block, error) {
+	h, err := eth.NewHash(hash)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid hash")
+	}
+
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_getUncleByBlockHashAndIndex",
+		Params: jsonrpc.MustParams(h, eth.QuantityFromUInt64(index)),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not make request")
+	}
+
+	return c.parseBlockResponse(response)
+}
+
+func (c *client) GetUncleByBlockNumberAndIndex(ctx context.Context, numberOrTag eth.BlockNumberOrTag, index uint64) (*eth.Block, error) {
+	request := jsonrpc.Request{
+		ID:     jsonrpc.ID{Num: 1},
+		Method: "eth_getUncleByBlockNumberAndIndex",
+		Params: jsonrpc.MustParams(&numberOrTag, eth.QuantityFromUInt64(index)),
+	}
+
+	applyContext(ctx, &request)
+	response, err := c.Request(ctx, &request)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not make request")
+	}
+
+	return c.parseBlockResponse(response)
+}

@@ -87,6 +87,30 @@ type Client interface {
 
 	// GetBlockTransactionCountByNumber returns the number of transactions in a block matching the given block number
 	GetBlockTransactionCountByNumber(ctx context.Context, numberOrTag eth.BlockNumberOrTag) (uint64, error)
+
+	// GetCode returns the code at a given address
+	GetCode(ctx context.Context, address eth.Address, numberOrTag eth.BlockNumberOrTag) (string, error)
+
+	// Sign calculates an Ethereum specific signature with: sign(keccak256("\x19Ethereum Signed Message:\n" + len(message) + message))
+	Sign(ctx context.Context, address eth.Address, message string) (string, error)
+
+	// SendTransaction creates new message call transaction or a contract creation
+	SendTransaction(ctx context.Context, msg eth.Transaction) (string, error)
+
+	// Call executes a new message call immediately without creating a transaction on the block chain
+	Call(ctx context.Context, msg eth.Transaction, numberOrTag eth.BlockNumberOrTag) (string, error)
+
+	// GetTransactionByBlockHashAndIndex returns information about a transaction by block hash and transaction index position
+	GetTransactionByBlockHashAndIndex(ctx context.Context, hash string, index uint64) (*eth.Transaction, error)
+
+	// GetTransactionByBlockNumberAndIndex returns information about a transaction by block number and transaction index position
+	GetTransactionByBlockNumberAndIndex(ctx context.Context, numberOrTag eth.BlockNumberOrTag, index uint64) (*eth.Transaction, error)
+
+	// GetUncleByBlockHashAndIndex returns information about a uncle of a block by hash and uncle index position
+	GetUncleByBlockHashAndIndex(ctx context.Context, hash string, index uint64) (*eth.Block, error)
+
+	// GetUncleByBlockNumberAndIndex returns information about a uncle of a block by number and uncle index position
+	GetUncleByBlockNumberAndIndex(ctx context.Context, numberOrTag eth.BlockNumberOrTag, index uint64) (*eth.Block, error)
 }
 
 type Subscription interface {
