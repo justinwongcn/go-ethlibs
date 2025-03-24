@@ -91,9 +91,6 @@ type Client interface {
 	// GetCode returns the code at a given address
 	GetCode(ctx context.Context, address eth.Address, numberOrTag eth.BlockNumberOrTag) (string, error)
 
-	// Sign calculates an Ethereum specific signature with: sign(keccak256("\x19Ethereum Signed Message:\n" + len(message) + message))
-	Sign(ctx context.Context, address eth.Address, message string) (string, error)
-
 	// SendTransaction creates new message call transaction or a contract creation
 	SendTransaction(ctx context.Context, msg eth.Transaction) (string, error)
 
