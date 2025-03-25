@@ -189,13 +189,11 @@ func (c *client) ChainId(ctx context.Context) (string, error) {
 	return chainId, nil
 }
 
-func (c *client) BlockByNumber(ctx context.Context, number uint64, full bool) (*eth.Block, error) {
-	n := eth.QuantityFromUInt64(number)
-
+func (c *client) BlockByNumber(ctx context.Context, numberOrTag eth.BlockNumberOrTag, full bool) (*eth.Block, error) {
 	request := jsonrpc.Request{
 		ID:     jsonrpc.ID{Num: 1},
 		Method: "eth_getBlockByNumber",
-		Params: jsonrpc.MustParams(&n, full),
+		Params: jsonrpc.MustParams(&numberOrTag, full),
 	}
 
 	applyContext(ctx, &request)

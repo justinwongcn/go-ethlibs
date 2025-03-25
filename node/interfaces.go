@@ -55,8 +55,8 @@ type Client interface {
 	// SendRawTransaction will send the raw signed transaction return tx hash or error
 	SendRawTransaction(ctx context.Context, msg string) (string, error)
 
-	// BlockByNumber can be used to get a block by its number
-	BlockByNumber(ctx context.Context, number uint64, full bool) (*eth.Block, error)
+	// BlockByNumber can be used to get a block by its number or tag (e.g. earliest, latest, pending)
+	BlockByNumber(ctx context.Context, numberOrTag eth.BlockNumberOrTag, full bool) (*eth.Block, error)
 
 	// BlockByNumberOrTag can be used to get a block by its number or tag (e.g. latest)
 	BlockByNumberOrTag(ctx context.Context, numberOrTag eth.BlockNumberOrTag, full bool) (*eth.Block, error)

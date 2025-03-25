@@ -143,14 +143,17 @@ func TestConnection_FutureBlockByNumber(t *testing.T) {
 
 	blockNumber, err := conn.BlockNumber(ctx)
 	require.NoError(t, err)
+	blockNumber += 1000
+	blockNum1 := eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(blockNumber).String())
 
-	next, err := conn.BlockByNumber(ctx, blockNumber+1000, false)
+	next, err := conn.BlockByNumber(ctx, *blockNum1, false)
 	require.Nil(t, next, "future block should be nil")
 	require.Error(t, err, "requesting a future block should return an error")
 	require.Equal(t, node.ErrBlockNotFound, err)
 
 	// get a the genesis block by number which should _not_ fail
-	genesis, err := conn.BlockByNumber(ctx, 0, false)
+	blockNum2 := eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(0).String())
+	genesis, err := conn.BlockByNumber(ctx, *blockNum2, false)
 	require.NoError(t, err, "requesting genesis block by number should not fail")
 	require.NotNil(t, genesis, "genesis block must not be nil")
 }
@@ -402,7 +405,8 @@ func TestConnection_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	require.NoError(t, err, "getting block number should not fail")
 
 	// Get a block with transactions to test with
-	latestBlock, err := conn.BlockByNumber(ctx, blockNumber, true)
+	blockNum1 := eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(blockNumber).String())
+	latestBlock, err := conn.BlockByNumber(ctx, *blockNum1, true)
 	require.NoError(t, err, "getting latest block should not fail")
 
 	// If the latest block has transactions, use it for testing
@@ -418,7 +422,7 @@ func TestConnection_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	}
 
 	// Test with valid block number and index
-	blockNum1 := eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(testBlockNumber).String())
+	blockNum1 = eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(testBlockNumber).String())
 	tx1, err := conn.GetTransactionByBlockNumberAndIndex(ctx, *blockNum1, txIndex)
 	if err == nil {
 		require.NotNil(t, tx1, "transaction must not be nil for valid block number and index")
@@ -508,7 +512,8 @@ func TestConnection_GetUncleByBlockNumberAndIndex(t *testing.T) {
 	require.NoError(t, err, "getting block number should not fail")
 
 	// Get a block with uncles to test with
-	latestBlock, err := conn.BlockByNumber(ctx, blockNumber, true)
+	blockNum1 := eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(blockNumber).String())
+	latestBlock, err := conn.BlockByNumber(ctx, *blockNum1, true)
 	require.NoError(t, err, "getting latest block should not fail")
 
 	// If the latest block has uncles, use it for testing
@@ -524,7 +529,7 @@ func TestConnection_GetUncleByBlockNumberAndIndex(t *testing.T) {
 	}
 
 	// Test with valid block number and index
-	blockNum1 := eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(testBlockNumber).String())
+	blockNum1 = eth.MustBlockNumberOrTag(eth.QuantityFromUInt64(testBlockNumber).String())
 	uncle1, err := conn.GetUncleByBlockNumberAndIndex(ctx, *blockNum1, uncleIndex)
 	if err == nil {
 		require.NotNil(t, uncle1, "uncle must not be nil for valid block number and index")
