@@ -245,26 +245,6 @@ func TestConnection_GetCode(t *testing.T) {
 	require.Empty(t, code3, "code must be empty for future block")
 }
 
-func TestConnection_Sign(t *testing.T) {
-	ctx := context.Background()
-	conn := getRopstenClient(t, ctx)
-
-	// Test with valid address and message
-	signature1, err := conn.Sign(ctx, "0xed28874e52A12f0D42118653B0FBCee0ACFadC00", "0xdeadbeaf")
-	require.NoError(t, err)
-	require.NotEmpty(t, signature1, "signature must not be empty for valid parameters")
-
-	// Test with invalid address format
-	signature2, err := conn.Sign(ctx, "invalid", "0xdeadbeaf")
-	require.Error(t, err, "requesting with invalid address should return an error")
-	require.Empty(t, signature2, "signature should be empty for invalid address")
-
-	// Test with empty message
-	signature3, err := conn.Sign(ctx, "0xed28874e52A12f0D42118653B0FBCee0ACFadC00", "")
-	require.Error(t, err)
-	require.Empty(t, signature3, "signature must be empty for empty message")
-}
-
 func TestConnection_Call(t *testing.T) {
 	ctx := context.Background()
 	conn := getRopstenClient(t, ctx)

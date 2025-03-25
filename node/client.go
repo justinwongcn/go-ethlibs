@@ -596,32 +596,6 @@ func (c *client) GetCode(ctx context.Context, address eth.Address, numberOrTag e
 	return code, nil
 }
 
-func (c *client) Sign(ctx context.Context, address eth.Address, message string) (string, error) {
-	request := jsonrpc.Request{
-		ID:     jsonrpc.ID{Num: 1},
-		Method: "eth_sign",
-		Params: jsonrpc.MustParams(address, message),
-	}
-
-	applyContext(ctx, &request)
-	response, err := c.Request(ctx, &request)
-	if err != nil {
-		return "", errors.Wrap(err, "could not make request")
-	}
-
-	if response.Error != nil {
-		return "", errors.New(string(*response.Error))
-	}
-
-	var signature string
-	err = json.Unmarshal(response.Result, &signature)
-	if err != nil {
-		return "", errors.Wrap(err, "could not decode result")
-	}
-
-	return signature, nil
-}
-
 func (c *client) SendTransaction(ctx context.Context, msg eth.Transaction) (string, error) {
 	request := jsonrpc.Request{
 		ID:     jsonrpc.ID{Num: 1},
